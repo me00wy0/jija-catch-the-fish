@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATFISH COVE</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+overflow:hidden;
+font-family:Georgia, serif;
+}
+
+/* 🌊 MAGICAL OCEAN BACKGROUND */
+#game{
+width:100vw;
+height:100vh;
+position:relative;
+overflow:hidden;
+
+background:
+radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
+radial-gradient(circle at 80% 60%, rgba(255,255,255,0.05), transparent 45%),
+linear-gradient(
+to bottom,
+#1F3B3B 0%,
+#2E5C5A 35%,
+#3F7A78 65%,
+#D6C2A1 100%
+);
+
+animation: breathe 6s infinite ease-in-out;
+}
+
+@keyframes breathe{
+0%,100%{filter:brightness(1);}
+50%{filter:brightness(1.08);}
+}
+
+/* 🌊 LIGHT RAYS */
+.rays{
+position:absolute;
+width:100%;
+height:100%;
+top:0;
+left:0;
+pointer-events:none;
+
+background:
+repeating-linear-gradient(
+120deg,
+rgba(255,255,255,0.03),
+rgba(255,255,255,0.03) 2px,
+transparent 2px,
+transparent 80px
+);
+
+animation: drift 12s linear infinite;
+opacity:0.4;
+}
+
+@keyframes drift{
+from{transform:translateY(0);}
+to{transform:translateY(60px);}
+}
+
+/* INTRO */
+#intro{
+position:absolute;
+inset:0;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:100;
+backdrop-filter:blur(3px);
+}
+
+.title{
+font-size:62px;
+color:#F6F1E9;
+letter-spacing:8px;
+animation: float 4s infinite ease-in-out;
+}
+
+.subtitle{
+margin-top:18px;
+font-size:20px;
+font-style:italic;
+color:#DCD5C7;
+letter-spacing:3px;
+}
+
+.playBtn{
+margin-top:70px;
+padding:14px 58px;
+font-size:20px;
+background:rgba(214,194,161,0.95);
+border:none;
+border-radius:40px;
+cursor:pointer;
+color:#355E63;
+transition:.3s;
+}
+
+.playBtn:hover{
+transform:translateY(-3px);
+background:#E7D4B5;
+}
+
+.creator{
+position:absolute;
+bottom:40px;
+opacity:.45;
+letter-spacing:5px;
+font-size:13px;
+color:#F6F1E9;
+}
+
+/* HUD */
+#hud{
+position:absolute;
+top:20px;
+left:20px;
+color:#F6F1E9;
+z-index:10;
+font-size:22px;
+display:none;
+}
+
+#lives{
+margin-top:8px;
+}
+
+/* CAT */
+#cat{
+position:absolute;
+bottom:120px;
+left:50%;
+transform:translateX(-50%);
+font-size:75px;
+transition:.1s;
+}
+
+/* FISH */
+.fish{
+position:absolute;
+font-size:38px;
+user-select:none;
+}
+
+/* 🫧 BUBBLES */
+.bubble{
+position:absolute;
+color:rgba(255,255,255,0.25);
+animation:bubbleMove linear infinite;
+}
+
+@keyframes bubbleMove{
+from{transform:translateY(100vh) scale(0.8);opacity:0;}
+20%{opacity:0.4;}
+100%{transform:translateY(-120vh) scale(1.1);opacity:0;}
+}
+
+/* FLOOR */
+.floor{
+position:absolute;
+bottom:0;
+width:100%;
+height:100px;
+background:linear-gradient(#D6C2A1,#C9B18A);
+}
+
+/* POPUP */
+#popup{
+position:absolute;
+inset:0;
+display:none;
+justify-content:center;
+align-items:center;
+background:rgba(0,0,0,0.3);
+z-index:200;
+}
+
+.card{
+background:rgba(246,241,233,0.95);
+padding:45px 70px;
+border-radius:30px;
+text-align:center;
+color:#355E63;
+}
+
+.card button{
+margin-top:25px;
+padding:12px 30px;
+border:none;
+border-radius:30px;
+background:#4E7C7A;
+color:white;
+cursor:pointer;
+}
+
+@keyframes float{
+50%{transform:translateY(-8px);}
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div class="rays"></div>
+
+<!-- INTRO -->
+<div id="intro">
+<div class="title">CATFISH COVE</div>
+<div class="subtitle">beneath the tide</div>
+
+<button class="playBtn" onclick="startGame()">PLAY</button>
+
+<div class="creator">a small sea by jija</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+<div id="score">Score: 0</div>
+<div id="lives">🐚 🐚 🐚</div>
+</div>
+
+<!-- CAT -->
+<div id="cat">🐈</div>
+
+<!-- FLOOR -->
+<div class="floor"></div>
+
+<!-- POPUP -->
+<div id="popup">
+<div class="card">
+<h1 id="message"></h1>
+<p id="final"></p>
+<button onclick="location.reload()">Dive Again</button>
+</div>
+</div>
+
+</div>
+
+<script>
+
+let score = 0;
+let lives = 3;
+let catX = window.innerWidth/2;
+let gameRunning = false;
+
+const cat = document.getElementById("cat");
+
+/* START GAME */
+function startGame(){
+document.getElementById("intro").style.display="none";
+document.getElementById("hud").style.display="block";
+gameRunning = true;
+
+spawnLoop();
+}
+
+/* KEYBOARD */
+document.addEventListener("keydown", e=>{
+if(!gameRunning) return;
+
+if(e.key==="ArrowLeft") catX -= 40;
+if(e.key==="ArrowRight") catX += 40;
+
+catX = Math.max(40, Math.min(window.innerWidth-120, catX));
+cat.style.left = catX + "px";
+});
+
+/* TOUCH CONTROL */
+let touchX = 0;
+
+document.addEventListener("touchstart", e=>{
+touchX = e.touches[0].clientX;
+});
+
+document.addEventListener("touchmove", e=>{
+if(!gameRunning) return;
+
+let newX = e.touches[0].clientX;
+catX += (newX - touchX) * 0.8;
+touchX = newX;
+
+catX = Math.max(40, Math.min(window.innerWidth-120, catX));
+cat.style.left = catX + "px";
+});
+
+/* SPAWN LOOP */
+function spawnLoop(){
+if(!gameRunning) return;
+
+spawnFish();
+setTimeout(spawnLoop, 800);
+}
+
+/* SPAWN FISH */
+function spawnFish(){
+
+let fish = document.createElement("div");
+fish.className = "fish";
+
+let r = Math.random();
+if(r < 0.08) fish.textContent = "🪼";
+else if(r < 0.18) fish.textContent = "⭐";
+else fish.textContent = "🐟";
+
+let x = Math.random() * (window.innerWidth - 80);
+let y = -50;
+
+fish.style.left = x + "px";
+fish.style.top = y + "px";
+
+game.appendChild(fish);
+
+/* MOVEMENT */
+let move = setInterval(()=>{
+
+y += 2.2;
+x += Math.sin(y/30)*2.5 + Math.cos(y/50)*1.2;
+
+fish.style.top = y + "px";
+fish.style.left = x + "px";
+
+let catRect = cat.getBoundingClientRect();
+let fishRect = fish.getBoundingClientRect();
+
+/* COLLISION */
+if(
+fishRect.bottom > catRect.top &&
+fishRect.left < catRect.right &&
+fishRect.right > catRect.left
+){
+
+if(fish.textContent==="⭐") score += 30;
+else if(fish.textContent==="🪼") lives--;
+else score += 10;
+
+update();
+fish.remove();
+clearInterval(move);
+}
+
+/* MISS */
+if(y > window.innerHeight - 120){
+lives--;
+update();
+fish.remove();
+clearInterval(move);
+
+if(lives <= 0) end();
+}
+
+},20);
+}
+
+/* UPDATE UI */
+function update(){
+document.getElementById("score").innerHTML = "Score: " + score;
+document.getElementById("lives").innerHTML = "🐚 ".repeat(lives);
+
+if(score >= 300) win();
+}
+
+/* WIN */
+function win(){
+gameRunning = false;
+show("OCEAN FEAST 🐈","The cat is full<br>Score: "+score);
+}
+
+/* LOSE */
+function end(){
+gameRunning = false;
+show("NO MORE FISH","Cat swam home<br>Score: "+score);
+}
+
+/* POPUP */
+function show(a,b){
+document.getElementById("popup").style.display="flex";
+message.innerHTML = a;
+final.innerHTML = b;
+}
+
+/* BUBBLES */
+for(let i=0;i<14;i++){
+let b = document.createElement("div");
+b.className="bubble";
+b.innerHTML="🫧";
+b.style.left = Math.random()*100+"vw";
+b.style.animationDuration = (6+Math.random()*10)+"s";
+b.style.fontSize = (12+Math.random()*25)+"px";
+game.appendChild(b);
+}
+
+</script>
+
+</body>
+</html>
